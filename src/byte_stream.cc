@@ -2,7 +2,13 @@
 
 using namespace std;
 
-ByteStream::ByteStream( uint64_t capacity ) : capacity_( capacity ) {}
+ByteStream::ByteStream( uint64_t capacity ) 
+	: capacity_( capacity )
+	, is_close_(false)
+	, bytePushed_(0)
+	, bytePoped_(0)
+	, buf_()
+{}
 
 bool Writer::is_closed() const
 {
@@ -36,7 +42,7 @@ uint64_t Writer::bytes_pushed() const
 
 bool Reader::is_finished() const
 {
-  	return bytePushed_ == bytePoped_;
+  	return (is_close_ && bytePushed_ == bytePoped_);
 }
 
 uint64_t Reader::bytes_popped() const

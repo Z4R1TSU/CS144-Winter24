@@ -26,9 +26,9 @@ public:
     // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
     uint64_t capacity_;
     bool error_ {};
-    bool is_close_ {};
-    uint64_t bytePushed_ {};
-    uint64_t bytePoped_ {};
+    bool is_close_;
+    uint64_t bytePushed_;
+    uint64_t bytePoped_;
     std::vector<std::string> buf_;
 };
 
