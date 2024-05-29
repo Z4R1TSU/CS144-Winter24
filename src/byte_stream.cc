@@ -8,6 +8,7 @@ ByteStream::ByteStream( uint64_t capacity )
 	, bytePushed_(0)
 	, bytePoped_(0)
 	, buf_()
+	, peek_()
 {}
 
 bool Writer::is_closed() const
@@ -17,8 +18,11 @@ bool Writer::is_closed() const
 
 void Writer::push( string data )
 {
-  	buf_.push_back(data);
-	bytePushed_ += data.size();
+	int push_size = min(available_capacity(), data.size());
+	for (int i = 0; i < push_size; i ++) {
+		buf_.push_back(data[i]);
+	}
+	bytePushed_ += push_size;
 }
 
 void Writer::close()
@@ -28,11 +32,7 @@ void Writer::close()
 
 uint64_t Writer::available_capacity() const
 {
-	uint64_t size = 0;
-	for (const string& s : buf_) {
-		size += s.size();
-	}
-  	return (capacity_ - size);
+  	return (capacity_ - buf_.size());
 }
 
 uint64_t Writer::bytes_pushed() const
@@ -52,31 +52,29 @@ uint64_t Reader::bytes_popped() const
 
 string_view Reader::peek() const
 {
-  	return string_view(buf_[0]);
+	// if (buf_.empty()) {
+	// 	return string_view();
+	// }
+	// return string_view(&buf_.front(), buf_.size());
+    peek_.clear();
+
+    for (const auto& ch : buf_) {
+        peek_.push_back(ch);
+    }
+
+    return peek_;
 }
 
 void Reader::pop( uint64_t len )
 {
- 	uint64_t cnt = 0;
-	for (;;) {
-		uint64_t size = buf_[0].size();
-		if (cnt == len) {
-			break;
-		}
-		if (cnt + size < len) {
-			buf_.erase(buf_.begin());
-		} else {
-			buf_[0] = buf_[0].substr(len - cnt);
-			break;
-		}
+	int pop_size = min(len, buf_.size());
+	for (int i = 0; i < pop_size; i ++) {
+		buf_.pop_front();
 	}
+	bytePoped_ += pop_size;
 }
 
 uint64_t Reader::bytes_buffered() const
 {
-	uint64_t size = 0;
-    for (const string& s : buf_) {
-		size += s.size();
-	}
-	return size;
+	return buf_.size();
 }

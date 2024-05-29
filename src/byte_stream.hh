@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <queue>
+#include <iostream>
 
 class Reader;
 class Writer;
@@ -29,7 +30,8 @@ public:
     bool is_close_;
     uint64_t bytePushed_;
     uint64_t bytePoped_;
-    std::vector<std::string> buf_;
+    std::deque<char> buf_;
+    mutable std::string peek_;
 };
 
 class Writer : public ByteStream
