@@ -4,12 +4,12 @@ using namespace std;
 
 void Reassembler::insert( uint64_t first_index, string data, bool is_last_substring )
 {
-    // Your code here.
     uint64_t wd_start = nxt_expected_idx_;
     uint64_t wd_end = wd_start + output_.writer().available_capacity();
     uint64_t cur_start = first_index;
     uint64_t cur_end = cur_start + data.size();
 
+    // set the eof index of this reassembling
     if (is_last_substring) {
         eof_idx_ = cur_end;
     }
@@ -28,8 +28,10 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
     }
     uint64_t len = end_idx - start_idx;
     
+    // insert the current data
     buf_.insert({start_idx, end_idx, data.substr(start_idx - first_index, len)});
    
+    // handle the overlapping of intervals
     std::vector<Interval> merged;
     auto it = buf_.begin();
     Interval last = *it;
@@ -54,6 +56,7 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
         buf_.insert(interval);
     }
 
+    // push when it ready
     it = buf_.begin();
     while (it->start == nxt_expected_idx_) {
         output_.writer().push(it->data);
@@ -61,6 +64,7 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
         it = buf_.erase(it);
     }
 
+    // close when all bytes are pushed
     if (nxt_expected_idx_ == eof_idx_) {
         output_.writer().close();
     }
