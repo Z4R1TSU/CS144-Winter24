@@ -34,31 +34,27 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
     
     buf_.insert({start_idx, end_idx, data.substr(start_idx - first_index, len)});
    
+    std::vector<Interval> merged;
     auto it = buf_.begin();
-    auto next_it = std::next(it);
-    uint64_t last_st = it->start;
-    uint64_t last_en = it->end;
-    std::string last_data = it->data;
+    Interval current = *it;
+    it ++;
 
-    buf_.erase(it);
-    
-    while (next_it != buf_.end()) {
-        if (next_it->start > last_en + 1) {
-            // 将上一个区间插入新的集合
-            buf_.insert({last_st, last_en, last_data});
-            last_st = next_it->start;
-            last_en = next_it->end;
-            last_data = next_it->data;
-        } else { 
-            // 合并当前区间
-            last_en = max(last_en, next_it->end);
-            last_data += next_it->data;
+    while (it != buf_.end()) {
+        if (current.end >= it->start - 1) {
+            current.end = std::max(current.end, it->end);
+            current.data = current.data.substr(0, it->start - current.start) + it->data;
+        } else {
+            merged.push_back(current);
+            current = *it;
         }
-        next_it = buf_.erase(next_it);
+        it ++;
     }
+    merged.push_back(current);
 
-    // 插入最后一个区间
-    buf_.insert({last_st, last_en, last_data});
+    buf_.clear();
+    for (const auto& interval : merged) {
+        buf_.insert(interval);
+    }
 
     // TODO
     for (it=buf_.begin(); it!=buf_.end(); it++)

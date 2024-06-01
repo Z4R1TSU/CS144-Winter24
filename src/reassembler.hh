@@ -3,6 +3,8 @@
 #include "byte_stream.hh"
 #include <iostream>
 #include <set>
+#include <string>
+#include <algorithm>
 #include <cmath>
 
 struct Interval {
