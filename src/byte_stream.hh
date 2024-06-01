@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <queue>
 #include <string>
 #include <string_view>
+#include <vector>
 
 class Reader;
 class Writer;
@@ -24,16 +24,12 @@ public:
 
 protected:
   // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
-  std::queue<std::string> stream_ {};
-  uint64_t removed_prefix_ {};
-
   uint64_t capacity_;
-  uint64_t total_popped_ {};
-  uint64_t total_pushed_ {};
-  uint64_t total_buffered_ {};
-
-  bool closed_ {};
   bool error_ {};
+  std::string buffer {};
+  bool is_close_ {};
+  uint64_t pushcnt_ {};
+  uint64_t popcnt_ {};
 };
 
 class Writer : public ByteStream

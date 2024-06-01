@@ -1,79 +1,87 @@
 #include "byte_stream.hh"
 
-#include <utility>
-
 using namespace std;
 
 ByteStream::ByteStream( uint64_t capacity ) : capacity_( capacity ) {}
 
 bool Writer::is_closed() const
 {
-  return closed_;
+  // Your code here.
+  return is_close_;
 }
 
 void Writer::push( string data )
 {
-  if ( Writer::is_closed() or Writer::available_capacity() == 0 or data.empty() ) {
+  // Your code here.
+  if (is_close_) {
     return;
   }
 
-  if ( data.size() > Writer::available_capacity() ) {
-    data.resize( Writer::available_capacity() );
-  }
-  total_pushed_ += data.size();
-  total_buffered_ += data.size();
+  uint64_t push_size = std::min(data.length(), available_capacity());
+  
+  // append buffer with data's form part
+  buffer.append(data.substr(0, push_size));
 
-  stream_.emplace( move( data ) );
+  pushcnt_ += push_size;
+
+  return;
 }
 
 void Writer::close()
 {
-  closed_ = true;
+  // Your code here.
+  is_close_ = true;
 }
 
 uint64_t Writer::available_capacity() const
 {
-  return capacity_ - total_buffered_;
+  // Your code here.
+  return (capacity_ - buffer.size());
 }
 
 uint64_t Writer::bytes_pushed() const
 {
-  return total_pushed_;
+  // Your code here.
+  return pushcnt_;
 }
 
 bool Reader::is_finished() const
 {
-  return closed_ and total_buffered_ == 0;
+  // Your code here.
+  return (is_close_ && pushcnt_ == popcnt_);
 }
 
 uint64_t Reader::bytes_popped() const
 {
-  return total_popped_;
+  // Your code here.
+  return popcnt_;
 }
 
 string_view Reader::peek() const
 {
-  return stream_.empty() ? string_view {} // std::string_view dependents on the initializer through its lifetime.
-                         : string_view { stream_.front() }.substr( removed_prefix_ );
+  // Your code here.
+  if (buffer.empty()) {
+    return {};
+  }
+
+  return std::string_view(buffer);
 }
 
 void Reader::pop( uint64_t len )
 {
-  total_buffered_ -= len;
-  total_popped_ += len;
-  while ( len != 0U ) {
-    const uint64_t& size { stream_.front().size() - removed_prefix_ };
-    if ( len < size ) {
-      removed_prefix_ += len;
-      break; // with len = 0;
-    }
-    stream_.pop();
-    removed_prefix_ = 0;
-    len -= size;
-  }
+  // Your code here.
+  uint64_t pop_size = std::min(len, buffer.size());
+
+  // modify buffer to its last part (start at index pop_size)
+  buffer = buffer.substr(pop_size);
+
+  popcnt_ += pop_size;
+
+  return;
 }
 
 uint64_t Reader::bytes_buffered() const
 {
-  return total_buffered_;
+  // Your code here.
+  return buffer.size();
 }

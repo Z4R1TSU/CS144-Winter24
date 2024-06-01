@@ -24,8 +24,7 @@ class Reassembler
 {
 public:
     // Construct Reassembler to write into given ByteStream.
-    // TODO
-    explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ) {std::cout<<"new"<<std::endl;}
+    explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ) {}
 
     /*
     * Insert a new substring to be reassembled into a ByteStream.
