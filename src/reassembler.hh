@@ -1,6 +1,7 @@
 #pragma once
 
 #include "byte_stream.hh"
+#include <iostream>
 #include <set>
 #include <cmath>
 
@@ -21,7 +22,7 @@ class Reassembler
 {
 public:
     // Construct Reassembler to write into given ByteStream.
-    explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ) {}
+    explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ) {std::cout<<"new"<<std::endl;}
 
     /*
     * Insert a new substring to be reassembled into a ByteStream.
@@ -61,5 +62,5 @@ private:
     // std::vector<char> data_;
     // uint64_t byte_pend_;
     uint64_t nxt_expected_idx_ = 0;
-    uint64_t eof_idx_ = -1;
+    uint64_t eof_idx_ = INT64_MAX;
 };
