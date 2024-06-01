@@ -63,5 +63,5 @@ private:
     // std::vector<char> data_;
     // uint64_t byte_pend_;
     uint64_t nxt_expected_idx_ = 0;
-    uint64_t eof_idx_ = INT64_MAX;
+    uint64_t eof_idx_ = UINT64_MAX;
 };

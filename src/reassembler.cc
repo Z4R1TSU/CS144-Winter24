@@ -13,7 +13,7 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
     // TODO
     cout<<"insert:"<<wd_start<<' '<<wd_end<<' '<<cur_start<<' '<<cur_end<<endl;
     if (is_last_substring) {
-        eof_idx_ = min(wd_end, cur_end);
+        eof_idx_ = cur_end;
     }
 
     if (cur_start >= wd_end) {
@@ -75,29 +75,6 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
     if (nxt_expected_idx_ == eof_idx_) {
         output_.writer().close();
     }
-
-    // uint64_t last_st, last_en;
-    // for (auto it = buf_.begin(); it != buf_.end(); ) {
-    //     if (it == buf_.begin()) {
-    //         last_st = it->start; last_en = it->end;
-    //         it ++;
-    //         continue;
-    //     }
-    //     if (it->start >= last_en) {
-    //         last_st = it->start;
-    //         last_en = it->end;
-    //         it ++;
-    //     } else {
-    //         uint64_t cur_st = it->start, cur_en = it->end;
-    //         string cur_data = it->data;
-    //         it --;
-    //         it->end = cur_end;
-    //         it->data += cur_data.substr(last_en - cur_st, cur_en - last_en));
-    //         it ++;
-    //         it = buf_.erase(it);
-    //         last_en = cur_en;
-    //     }
-    // } 
 }
 
 uint64_t Reassembler::bytes_pending() const
