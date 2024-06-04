@@ -4,12 +4,12 @@ using namespace std;
 
 void TCPReceiver::receive( TCPSenderMessage message )
 {
-  // Your code here.
-  (void)message;
+	// Your code here.
+	(void)message;
 }
 
 TCPReceiverMessage TCPReceiver::send() const
 {
-  // Your code here.
-  return {};
+	// Your code here.
+	return {};
 }
