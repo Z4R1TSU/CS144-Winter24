@@ -61,8 +61,6 @@ public:
 private:
     ByteStream output_; // the Reassembler writes to this ByteStream
     std::set<Interval> buf_ {};
-    // std::vector<char> data_;
-    // uint64_t byte_pend_;
     uint64_t nxt_expected_idx_ = 0;
     uint64_t eof_idx_ = UINT64_MAX;
 };
