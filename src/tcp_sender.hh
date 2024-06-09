@@ -6,9 +6,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <list>
-#include <memory>
-#include <optional>
 #include <queue>
 
 class TCPSender
@@ -16,7 +13,7 @@ class TCPSender
 public:
 	/* Construct TCP sender with given default Retransmission Timeout and possible ISN */
 	TCPSender( ByteStream&& input, Wrap32 isn, uint64_t initial_RTO_ms )
-		: input_( std::move( input ) ), isn_( isn ), initial_RTO_ms_( initial_RTO_ms )
+		: input_( std::move( input ) ), isn_( isn ), initial_RTO_ms_( initial_RTO_ms ), cur_RTO_ms_( initial_RTO_ms )
 	{}
 
 	/* Generate an empty TCPSenderMessage */
@@ -48,4 +45,16 @@ private:
 	ByteStream input_;
 	Wrap32 isn_;
 	uint64_t initial_RTO_ms_;
+
+	uint64_t send_cnt_ {};
+	uint64_t ack_cnt_ {};
+	uint64_t retx_cnt_ {};
+	uint64_t wdsz_ {};
+	bool is_syn_ {};
+	bool is_fin_ {};
+
+	// time
+	uint64_t timer_ {};
+	std::queue<TCPSenderMessage> retx_queue_ {};
+	uint64_t cur_RTO_ms_;
 };
