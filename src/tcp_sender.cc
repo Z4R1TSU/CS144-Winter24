@@ -19,36 +19,42 @@ uint64_t TCPSender::consecutive_retransmissions() const
 
 void TCPSender::push( const TransmitFunction& transmit )
 {
-	if (reader().is_finished() && wdsz_ > sequence_numbers_in_flight() && !is_fin_) {
-		// sender is ready to send fin msg
-		TCPSenderMessage msg = {
-			.seqno = Wrap32::wrap(send_cnt_, isn_), 
-			.SYN = is_syn_, 
-			.payload = {}, 
-			.FIN = true, 
-			.RST = input_.has_error()
-		};
-		send_cnt_ += msg.sequence_length();
-		transmit(msg);
-	} else {
+	if (wdsz_ > send_cnt_ - ack_cnt_) {
+		if (is_fin_ || wdsz_ == 0) {
+			// if the tx is fin or window size is 0, stop sending msg
+			return;
+		}
+		
 		if (!is_syn_) {
-			TCPSenderMessage msg = make_empty_message();
-			msg.SYN = !is_syn_;
+			auto msg = make_empty_message();
+			msg.SYN = true;
 			is_syn_ = true;
 			send_cnt_ ++;
 			transmit(msg);
-		} else {
-			string data;
-			uint64_t len = min(TCPConfig::MAX_PAYLOAD_SIZE, wdsz_);
-			read(input_.reader(), len, data);
+		}
+
+		uint64_t remaining = wdsz_ - (send_cnt_ - ack_cnt_);
+		if (reader().bytes_buffered()) {
+			auto data = reader().peek();
+			uint64_t len = min(min(remaining, reader().bytes_buffered()), TCPConfig::MAX_PAYLOAD_SIZE);
+			data = data.substr(0, len);
 			TCPSenderMessage msg = {
-				.seqno = Wrap32::wrap(send_cnt_, isn_), 
-				.SYN = !is_syn_, 
-				.payload = data, 
-				.FIN = false, 
+				.seqno = Wrap32::wrap(send_cnt_, isn_),
+				.SYN = !is_syn_,
+				.payload = static_cast<string>(data),
+				.FIN = false,
 				.RST = input_.has_error()
 			};
+			input_.reader().pop(len);
 			send_cnt_ += msg.sequence_length();
+			transmit(msg);
+		}
+
+		if (!is_fin_ && wdsz_ > send_cnt_ - ack_cnt_ && reader().is_finished()) {
+			auto msg = make_empty_message();
+			msg.FIN = true;
+			is_fin_ = true;
+			send_cnt_ ++;
 			transmit(msg);
 		}
 	}

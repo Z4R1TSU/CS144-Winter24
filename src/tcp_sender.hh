@@ -49,7 +49,7 @@ private:
 	uint64_t send_cnt_ {};
 	uint64_t ack_cnt_ {};
 	uint64_t retx_cnt_ {};
-	uint64_t wdsz_ {};
+	uint64_t wdsz_ = 1;
 	bool is_syn_ {};
 	bool is_fin_ {};
 
