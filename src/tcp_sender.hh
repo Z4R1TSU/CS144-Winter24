@@ -55,6 +55,7 @@ private:
 
 	// time
 	uint64_t timer_ {};
+	bool is_timer_on_ {};
 	std::queue<TCPSenderMessage> retx_queue_ {};
 	uint64_t cur_RTO_ms_;
 };

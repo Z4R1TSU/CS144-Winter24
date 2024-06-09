@@ -19,44 +19,43 @@ uint64_t TCPSender::consecutive_retransmissions() const
 
 void TCPSender::push( const TransmitFunction& transmit )
 {
-	if (wdsz_ > send_cnt_ - ack_cnt_) {
-		if (is_fin_ || wdsz_ == 0) {
-			// if the tx is fin or window size is 0, stop sending msg
-			return;
+	while (wdsz_ > sequence_numbers_in_flight()) {
+		if (is_fin_ || wdsz_ == 0 || retx_cnt_ >= TCPConfig::MAX_RETX_ATTEMPTS) {
+			break;
 		}
-		
+
+		auto msg = make_empty_message();
 		if (!is_syn_) {
-			auto msg = make_empty_message();
 			msg.SYN = true;
 			is_syn_ = true;
-			send_cnt_ ++;
-			transmit(msg);
 		}
 
-		uint64_t remaining = wdsz_ - (send_cnt_ - ack_cnt_);
-		if (reader().bytes_buffered()) {
-			auto data = reader().peek();
-			uint64_t len = min(min(remaining, reader().bytes_buffered()), TCPConfig::MAX_PAYLOAD_SIZE);
-			data = data.substr(0, len);
-			TCPSenderMessage msg = {
-				.seqno = Wrap32::wrap(send_cnt_, isn_),
-				.SYN = !is_syn_,
-				.payload = static_cast<string>(data),
-				.FIN = false,
-				.RST = input_.has_error()
-			};
-			input_.reader().pop(len);
-			send_cnt_ += msg.sequence_length();
-			transmit(msg);
+		uint64_t remaining = (wdsz_ == 0 ? 1 : wdsz_) - sequence_numbers_in_flight();
+		uint64_t len = min(TCPConfig::MAX_PAYLOAD_SIZE, remaining - msg.sequence_length());
+		auto&& data = msg.payload;
+		while (reader().bytes_buffered() && data.size() < len) {
+			auto cur_data = reader().peek();
+			cur_data = cur_data.substr(0, len - data.size());
+			data += cur_data;
+			input_.reader().pop(cur_data.size());
 		}
 
-		if (!is_fin_ && wdsz_ > send_cnt_ - ack_cnt_ && reader().is_finished()) {
-			auto msg = make_empty_message();
+		if (!is_fin_ && remaining > msg.sequence_length() && reader().is_finished()) {
 			msg.FIN = true;
 			is_fin_ = true;
-			send_cnt_ ++;
-			transmit(msg);
 		}
+
+		if (msg.sequence_length() == 0) {
+			break;
+		}
+
+		transmit(msg);
+		if (!is_timer_on_) {
+			is_timer_on_ = true;
+			timer_ = 0;
+		}
+		send_cnt_ += msg.sequence_length();
+		retx_queue_.push(move(msg));
 	}
 }
 
@@ -86,6 +85,7 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
 			cur_RTO_ms_ = initial_RTO_ms_;
 			retx_cnt_ = 0;
 			timer_ = 0;
+			is_timer_on_ = false;
 		}
 	}
 }
