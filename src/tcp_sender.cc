@@ -19,8 +19,8 @@ uint64_t TCPSender::consecutive_retransmissions() const
 
 void TCPSender::push( const TransmitFunction& transmit )
 {
-	while (wdsz_ > sequence_numbers_in_flight()) {
-		if (is_fin_ || wdsz_ == 0 || retx_cnt_ >= TCPConfig::MAX_RETX_ATTEMPTS) {
+	while ((wdsz_ == 0 ? 1 : wdsz_) > sequence_numbers_in_flight()) {
+		if (is_fin_) {
 			break;
 		}
 
@@ -70,11 +70,11 @@ TCPSenderMessage TCPSender::make_empty_message() const
 
 void TCPSender::receive( const TCPReceiverMessage& msg )
 {
+	wdsz_ = msg.window_size;
 	if (msg.RST) {
 		input_.set_error();
 		return;
 	}
-	wdsz_ = msg.window_size;
 	if (msg.ackno.has_value()) {
 		uint64_t recv_ackno = msg.ackno.value().unwrap(isn_, ack_cnt_);
 		if (recv_ackno > send_cnt_) {
@@ -84,15 +84,18 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
 			ack_cnt_ = recv_ackno;
 			cur_RTO_ms_ = initial_RTO_ms_;
 			retx_cnt_ = 0;
-			timer_ = 0;
-			is_timer_on_ = false;
+			if (is_timer_on_ && sequence_numbers_in_flight()) {
+				timer_ = 0;
+			}
 		}
 	}
 }
 
 void TCPSender::tick( uint64_t ms_since_last_tick, const TransmitFunction& transmit )
 {
-	timer_ += ms_since_last_tick;
+	if (is_timer_on_) {
+		timer_ += ms_since_last_tick;
+	}
 	if (timer_ >= cur_RTO_ms_) {
 		while (!retx_queue_.empty()) {
 			auto msg = retx_queue_.front();
