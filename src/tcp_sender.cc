@@ -104,7 +104,7 @@ void TCPSender::tick( uint64_t ms_since_last_tick, const TransmitFunction& trans
 				// if there are packets lost
 				transmit(msg);
 				if (wdsz_) {
-					cur_RTO_ms_ = 2 * initial_RTO_ms_;
+					cur_RTO_ms_ *= 2;
 				}
 				timer_ = 0;
 				retx_cnt_ ++;
