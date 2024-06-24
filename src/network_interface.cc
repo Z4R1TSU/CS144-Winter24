@@ -113,19 +113,19 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
                     }
                 }
             } else {
-                    if (boardcast_waitlist_.contains(sender_ip)) {
-                    for (auto dgram : boardcast_waitlist_[sender_ip].first) {
-                        EthernetHeader dgram_eth_header = {
-                            .dst = sender_mac,
-                            .src = this->ethernet_address_,
-                            .type = EthernetHeader::TYPE_IPv4
-                        };
-                        transmit( {
-                            .header = dgram_eth_header,
-                            .payload = serialize(dgram)
-                        } );
-                    }
-                    boardcast_waitlist_.erase(sender_ip);
+                if (boardcast_waitlist_.contains(sender_ip)) {
+                for (auto dgram : boardcast_waitlist_[sender_ip].first) {
+                    EthernetHeader dgram_eth_header = {
+                        .dst = sender_mac,
+                        .src = this->ethernet_address_,
+                        .type = EthernetHeader::TYPE_IPv4
+                    };
+                    transmit( {
+                        .header = dgram_eth_header,
+                        .payload = serialize(dgram)
+                    } );
+                }
+                boardcast_waitlist_.erase(sender_ip);
                 }
             }
         }
