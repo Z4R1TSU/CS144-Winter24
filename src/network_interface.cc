@@ -88,7 +88,6 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
             const auto sender_mac = arp_msg.sender_ethernet_address;
             arp_map_[sender_ip] = {sender_mac, 0};
 
-            cout << (arp_msg.opcode == ARPMessage::OPCODE_REPLY) << endl;
             if (arp_msg.opcode == ARPMessage::OPCODE_REQUEST && arp_msg.target_ip_address == this->ip_address_.ipv4_numeric()) {
                 ARPMessage arp_reply = {
                     .opcode = ARPMessage::OPCODE_REPLY,
@@ -106,26 +105,20 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
                     .header = arp_eth_header,
                     .payload = serialize(arp_reply)
                 } );
-
-                for (auto it = boardcast_waitlist_.begin(); it != boardcast_waitlist_.end(); it ++) {
-                    for (auto dgram : it->second.first) {
-                        cout << "ip: " << it->first << " ms has passed: " << endl;
-                    }
-                }
             } else {
                 if (boardcast_waitlist_.contains(sender_ip)) {
-                for (auto dgram : boardcast_waitlist_[sender_ip].first) {
-                    EthernetHeader dgram_eth_header = {
-                        .dst = sender_mac,
-                        .src = this->ethernet_address_,
-                        .type = EthernetHeader::TYPE_IPv4
-                    };
-                    transmit( {
-                        .header = dgram_eth_header,
-                        .payload = serialize(dgram)
-                    } );
-                }
-                boardcast_waitlist_.erase(sender_ip);
+                    for (auto dgram : boardcast_waitlist_[sender_ip].first) {
+                        EthernetHeader dgram_eth_header = {
+                            .dst = sender_mac,
+                            .src = this->ethernet_address_,
+                            .type = EthernetHeader::TYPE_IPv4
+                        };
+                        transmit( {
+                            .header = dgram_eth_header,
+                            .payload = serialize(dgram)
+                        } );
+                    }
+                    boardcast_waitlist_.erase(sender_ip);
                 }
             }
         }
