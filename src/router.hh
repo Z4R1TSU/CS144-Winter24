@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "exception.hh"
 #include "network_interface.hh"
@@ -32,7 +33,16 @@ public:
     // Route packets between the interfaces
     void route();
 
+    // The Entry of Router map
+    struct RouterEntry {
+        uint32_t ipv4 {};
+        uint8_t netmask {};
+        std::optional<Address> next_hop {};
+        size_t interface_idx {};
+    };
+
 private:
     // The router's collection of network interfaces
     std::vector<std::shared_ptr<NetworkInterface>> _interfaces {};
+    std::vector<RouterEntry> router_map_ {};
 };

@@ -1,7 +1,10 @@
 #include "router.hh"
+#include "address.hh"
+#include "network_interface.hh"
 
 #include <iostream>
 #include <limits>
+#include <memory>
 
 using namespace std;
 
@@ -20,11 +23,39 @@ void Router::add_route( const uint32_t route_prefix,
         << static_cast<int>( prefix_length ) << " => " << ( next_hop.has_value() ? next_hop->ip() : "(direct)" )
         << " on interface " << interface_num << "\n";
 
-    // Your code here.
+    router_map_.emplace_back(route_prefix, prefix_length, next_hop, interface_num);
 }
 
 // Go through all the interfaces, and route every incoming datagram to its proper outgoing interface.
 void Router::route()
 {
-    // Your code here.
+    for (const auto& interface: _interfaces) {
+        auto dgrams = interface->datagrams_received();
+        while (!dgrams.empty()) {
+            auto dgram = dgrams.front();
+            dgrams.pop();
+            auto dst_ip = dgram.header.dst;
+            if (dgram.header.ttl -- <= 1) {
+                continue;
+            }
+            // given the destination ip address, get the next interface through _interfaces
+            auto cur_best_match = router_map_.end();
+            for (auto it = router_map_.begin(); it != router_map_.end(); it = next(it)) {
+                auto netmask = 0xFFFF'FFFF << (32 - it->netmask);
+                auto cur_net_addr = it->ipv4 & netmask;
+                auto dst_net_addr = dst_ip & netmask;
+                if (cur_net_addr == dst_net_addr && it->netmask > cur_best_match->netmask) {
+                    cur_best_match = it;
+                }
+            }
+            if (cur_best_match == router_map_.end()) {
+                continue;
+            }
+            if (cur_best_match->next_hop.has_value()) {
+                _interfaces[cur_best_match->interface_idx]->send_datagram(dgram, cur_best_match->next_hop.value());
+            } else {
+                _interfaces[cur_best_match->interface_idx]->send_datagram(dgram, Address::from_ipv4_numeric(dst_ip));
+            }
+        }
+    }
 }
