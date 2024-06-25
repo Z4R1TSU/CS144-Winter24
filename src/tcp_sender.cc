@@ -4,7 +4,6 @@
 #include "tcp_sender_message.hh"
 #include "wrapping_integers.hh"
 #include <algorithm>
-#include <iostream>
 
 using namespace std;
 
