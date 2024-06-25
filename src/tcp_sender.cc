@@ -4,6 +4,7 @@
 #include "tcp_sender_message.hh"
 #include "wrapping_integers.hh"
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 
@@ -32,12 +33,14 @@ void TCPSender::push( const TransmitFunction& transmit )
 
 		uint64_t remaining = (wdsz_ == 0 ? 1 : wdsz_) - sequence_numbers_in_flight();
 		uint64_t len = min(TCPConfig::MAX_PAYLOAD_SIZE, remaining - msg.sequence_length());
+		// TODO
+		cout << "remain: " << remaining << " len: " << len << " msglen: " << msg.sequence_length() << endl;
 		auto&& data = msg.payload;
 		while (reader().bytes_buffered() && data.size() < len) {
 			auto cur_data = reader().peek();
 			cur_data = cur_data.substr(0, len - data.size());
 			data += cur_data;
-			input_.reader().pop(cur_data.size());
+			input_.reader().pop(data.size());
 		}
 
 		if (!is_fin_ && remaining > msg.sequence_length() && reader().is_finished()) {
@@ -49,13 +52,15 @@ void TCPSender::push( const TransmitFunction& transmit )
 			break;
 		}
 
+		// TODO
+		cout << "msg len: " << msg.sequence_length() << endl;
 		transmit(msg);
 		if (!is_timer_on_) {
 			is_timer_on_ = true;
 			timer_ = 0;
 		}
 		send_cnt_ += msg.sequence_length();
-		retx_queue_.push(move(msg));
+		retx_queue_.emplace(msg);
 	}
 }
 
@@ -76,16 +81,22 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
 		return;
 	}
 	if (msg.ackno.has_value()) {
-		uint64_t recv_ackno = msg.ackno.value().unwrap(isn_, ack_cnt_);
+		const uint64_t recv_ackno = msg.ackno.value().unwrap(isn_, ack_cnt_);
 		if (recv_ackno > send_cnt_) {
 			return;
 		}
-		if (recv_ackno > ack_cnt_) {
-			ack_cnt_ = recv_ackno;
-			cur_RTO_ms_ = initial_RTO_ms_;
+		while (!retx_queue_.empty()) {
+			auto retx_msg = retx_queue_.front();
+			if (recv_ackno < ack_cnt_ + retx_msg.sequence_length()) {
+				break;
+			}
+			ack_cnt_ += retx_msg.sequence_length();
+			retx_queue_.pop();
 			retx_cnt_ = 0;
-			if (is_timer_on_ && sequence_numbers_in_flight()) {
-				timer_ = 0;
+			cur_RTO_ms_ = initial_RTO_ms_;
+			timer_ = 0;
+			if (retx_queue_.empty()) {
+				is_timer_on_ = false;
 			}
 		}
 	}
@@ -104,10 +115,10 @@ void TCPSender::tick( uint64_t ms_since_last_tick, const TransmitFunction& trans
 				// if there are packets lost
 				transmit(msg);
 				if (wdsz_) {
+					retx_cnt_ ++;
 					cur_RTO_ms_ *= 2;
 				}
 				timer_ = 0;
-				retx_cnt_ ++;
 				break;
 			} else {
 				retx_queue_.pop();
