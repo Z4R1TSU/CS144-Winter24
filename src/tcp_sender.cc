@@ -33,8 +33,6 @@ void TCPSender::push( const TransmitFunction& transmit )
 
 		uint64_t remaining = (wdsz_ == 0 ? 1 : wdsz_) - sequence_numbers_in_flight();
 		uint64_t len = min(TCPConfig::MAX_PAYLOAD_SIZE, remaining - msg.sequence_length());
-		// TODO
-		cout << "remain: " << remaining << " len: " << len << " msglen: " << msg.sequence_length() << endl;
 		auto&& data = msg.payload;
 		while (reader().bytes_buffered() && data.size() < len) {
 			auto cur_data = reader().peek();
@@ -52,8 +50,6 @@ void TCPSender::push( const TransmitFunction& transmit )
 			break;
 		}
 
-		// TODO
-		cout << "msg len: " << msg.sequence_length() << endl;
 		transmit(msg);
 		if (!is_timer_on_) {
 			is_timer_on_ = true;
